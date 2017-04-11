@@ -9,7 +9,7 @@ Check if a zimbra backup is available and successfully executed since a specific
     -c [Default: 86400] Critical in seconds (difference between now and the last possible time to throw a critical)
 
 ### Example
-./check_zimbra_backup -w 86400 -c10000
+./check_zimbra_backup -w 86400 -c10000 \
 last zimbra backup full-20170410.230200.505 is OK
 
 ### Install 
