@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# check_zimbra_backup
+# Check last available zimbra backup
+#
+# @author Raffael Sahli <sahli@gyselroth.com> 2013
+#
+
+usage()
+{
+cat << EOF
+usage: $0 options
+
+OPTIONS:
+   -h Shows this message
+   -w [Default: 43200] Warning in seconds
+   -c [Default: 86400] Critical in seconds
+EOF
+
+exit 3
+}
+
+warn=43200
+crit=86400
+while getopts "hw:c:" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         c)
+             crit=$OPTARG
+             ;;
+         w)
+             warn=$OPTARG
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+if [ "$crit" -lt "$warn" ]; then
+    echo "option critical (-c) must be equal or greater than warning (-w)"
+    echo
+    usage
+fi
+
+now=$(date +%s)
+since_crit=$((now-crit))
+out=$(/opt/zimbra/bin/zmbackupquery --from "$(date +%Y%m%d000000 -d @$since_crit)")
+
+if [ $? -eq 1 ];
+then
+    echo "CRITICAL: failed query last backup, accounts.xml available?"
+    exit 2
+fi
+
+not=$(echo "$out" | head -n1)
+if [ "$not" == "No backups found" ]; then
+    echo "CRITICAL: no zimbra backup found with the specified thresholds"
+    exit 2
+fi
+
+datestr=$(echo "$out" | grep "Status:  completed" -A2 | head -n3 | tail -n1 | cut -d "," -f2)
+label=$(echo "$out" | grep "Status:  completed" -B2 | head -n1 | cut -d ":" -f2 | tr -d [:blank:])
+ts=$(date --date="$datestr" +"%s")
+diff=$((now-ts))
+
+if [[ "$diff" -lt "$warn" && "$diff" -lt "$crit" ]]; then
+    echo "last zimbra backup $label is OK"
+    exit 0
+elif [[ "$diff" -ge "$warn" && "$diff" -lt "$crit" ]]; then
+    echo "last zimbra backup $label is WARNING, $diff seconds ago"
+    exit 1
+else
+    echo "last zimbra backup $label is CRITICAL, $diff seconds ago"
+    exit 2
+fi
