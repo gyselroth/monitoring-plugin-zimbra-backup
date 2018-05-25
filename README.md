@@ -1,4 +1,4 @@
-# Monitoring Plugin: Galera cluster
+# Monitoring Plugin: Zimbra Backup
 
 ### Description
 Check if a zimbra backup is available and successfully executed since a specific time.
